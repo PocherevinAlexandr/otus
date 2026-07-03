@@ -174,4 +174,23 @@ make -j2
 sudo make modules_install
 sudo make install
 sudo update-grub
+user@user-HVM-domU:~/linux-5.15.210$ sudo update-grub
+        Sourcing file `/etc/default/grub'
+        Generating grub configuration file ...
+        Found linux image: /boot/vmlinuz-7.1.0-070100-generic
+        Found initrd image: /boot/initrd.img-7.1.0-070100-generic
+        Found linux image: /boot/vmlinuz-6.17.0-35-generic
+        Found initrd image: /boot/initrd.img-6.17.0-35-generic
+        Found linux image: /boot/vmlinuz-5.15.210
+        Found initrd image: /boot/initrd.img-5.15.210
+        Found memtest86+x64 image: /memtest86+x64.bin
+        Warning: os-prober will not be executed to detect other bootable partitions.
+        Systems on them will not be added to the GRUB boot configuration.
+        Check GRUB_DISABLE_OS_PROBER documentation entry.
+        Adding boot menu entry for UEFI Firmware Settings ...
+        done
+sudo awk -F\' '/menuentry / {print $2}' /boot/grub/grub.cfg
+sudo grub-reboot "Advanced options for Ubuntu>Ubuntu, with Linux 5.15.210"
 sudo reboot
+uname -r
+<img width="219" height="45" alt="изображение" src="https://github.com/user-attachments/assets/028dcb7b-92a4-4bcf-ba88-db07585c09cc" />
