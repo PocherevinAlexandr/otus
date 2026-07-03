@@ -169,7 +169,8 @@ user@user-HVM-domU:~/linux-5.15.210$ make menuconfig
 # Kernel hacking -> Compile-time checks and compiler options -> Generate BTF typeinfo = отключить
 scripts/config --disable SYSTEM_TRUSTED_KEYS
 scripts/config --disable SYSTEM_REVOCATION_KEYS
-make
+make localmodconfig
+make -j2
 sudo make modules_install
 sudo make install
 sudo update-grub
