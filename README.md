@@ -1,8 +1,7 @@
-# otus
-Обновление ядра системы
-Цель:
+# OTUS. Администратор Linux. Продвинутый уровень Урок 1 Обновление ядра системы
+🎯Цель:
 
-научиться обновлять ядро в ОС Linux;
+    научиться обновлять ядро в ОС Linux;
 
 Описание/Пошаговая инструкция выполнения домашнего задания:
 
@@ -11,7 +10,8 @@
     Запустите ВМ c Ubuntu.
     Обновите ядро ОС на новейшую стабильную версию из mainline-репозитория.
     Оформите отчет в README-файле в GitHub-репозитории.
-
+    
+```console
 user@user-HVM-domU:~$ uname -r
 6.17.0-35-generic
 user@user-HVM-domU:~$ mkdir kernel && cd kernel
@@ -62,7 +62,7 @@ HTTP-запрос отправлен. Ожидание ответа… 200 OK
 linux-modules-7.1.0-070100-generic_7.1.0-0701 100%[===============================================================================================>] 162,24M  49,2MB/s    за 3,7s
 
 2026-07-03 14:59:05 (43,6 MB/s) - ‘linux-modules-7.1.0-070100-generic_7.1.0-070100.202606141628_amd64.deb.1’ сохранён [170117312/170117312]
-
+'''
 user@user-HVM-domU:~/kernel$ sudo dpkg -i *.deb
 [sudo] пароль для user:
 Выбор ранее не выбранного пакета linux-headers-7.1.0-070100.
@@ -141,11 +141,15 @@ user@user-HVM-domU:~/kernel$ sudo reboot
 Last login: Fri Jul  3 14:50:05 2026 from 10.0.100.25
 user@user-HVM-domU:~$ uname -r
 7.1.0-070100-generic
+```
 
 ⭐️Задание со звездочкой
 
 Собрать ядро самостоятельно из исходных кодов.
-#Примечание остальные ядра особенно стабильные не доступны ошибка 404 по этому использовал 5.15.210
+>[!NOTE]
+>Примечание остальные ядра особенно стабильные не доступны ошибка 404 по этому использовал 5.15.210
+
+```console
 sudo apt update
 sudo apt install build-essential libncurses-dev bison flex libssl-dev libelf-dev bc git ccache -y
 wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.15.210.tar.xz
@@ -155,18 +159,32 @@ cd linux-5.15.210
 make menuconfig
 save exit
 make
-# Ubuntu по умолчанию требует цифровую подпись модулей ядра. Без отключения этих строк сборка прервется с ошибкой
-# make[1]: *** Нет правила для сборки цели «debian/canonical-certs.pem», требуемой для «certs/x509_certificate_list».  Останов.
-# make: *** [Makefile:1924: certs] Ошибка 2
+```
+>[!WARNING]
+>Прерывается ошибкой
+> make[1]: *** Нет правила для сборки цели «debian/canonical-certs.pem», требуемой для «certs/x509_certificate_list».  Останов.</br>
+> make: *** [Makefile:1924: certs] Ошибка 2
+>
+> Ubuntu по умолчанию требует цифровую подпись модулей ядра. </br>
+> Без отключения этих строк *SYSTEM_TRUSTED_KEYS* и *SYSTEM_REVOCATION_KEYS* сборка прервется с ошибкой </br>
+
+ ```console
 scripts/config --disable SYSTEM_TRUSTED_KEYS
 scripts/config --disable SYSTEM_REVOCATION_KEYS
 make
-# BTF: .tmp_vmlinux.btf: pahole (pahole) is not available
-# Failed to generate BTF for vmlinux
-# Try to disable CONFIG_DEBUG_INFO_BTF
-# make: *** [Makefile:1244: vmlinux] Ошибка 1
+```
+>[!WARNING]
+> ошибка 
+> BTF: .tmp_vmlinux.btf: pahole (pahole) is not available</br>
+> Failed to generate BTF for vmlinux</br>
+> Try to disable CONFIG_DEBUG_INFO_BTF</br>
+> make: *** [Makefile:1244: vmlinux] Ошибка 1
+ ```console
 user@user-HVM-domU:~/linux-5.15.210$ make menuconfig
-# Kernel hacking -> Compile-time checks and compiler options -> Generate BTF typeinfo = отключить
+```
+>[!IMPORTANT]
+> Kernel hacking -> Compile-time checks and compiler options -> Generate BTF typeinfo = отключить
+```console
 scripts/config --disable SYSTEM_TRUSTED_KEYS
 scripts/config --disable SYSTEM_REVOCATION_KEYS
 make localmodconfig
@@ -193,4 +211,5 @@ sudo awk -F\' '/menuentry / {print $2}' /boot/grub/grub.cfg
 sudo grub-reboot "Advanced options for Ubuntu>Ubuntu, with Linux 5.15.210"
 sudo reboot
 uname -r
+```
 <img width="219" height="45" alt="изображение" src="https://github.com/user-attachments/assets/028dcb7b-92a4-4bcf-ba88-db07585c09cc" />
