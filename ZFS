@@ -14,7 +14,7 @@
 ### Описание команд и их вывод
 
 1. Создание 4 пулов в режиме `mirror` (зеркало) из дисков по 512 МБ:
-```bash
+```console
 zpool create otus1 mirror /dev/sdb /dev/sdc
 zpool create otus2 mirror /dev/sdd /dev/sde
 zpool create otus3 mirror /dev/sdf /dev/sdg
