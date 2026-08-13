@@ -166,3 +166,4 @@ rm -f mail_body.txt
 
 =========================================================
 ```
+<img width="901" height="251" alt="изображение" src="https://github.com/user-attachments/assets/d617ffa6-425c-4e87-894d-92ab55b5d42c" />
