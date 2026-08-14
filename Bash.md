@@ -30,10 +30,10 @@
 #!/bin/bash
 export LC_TIME=C
 export TZ="Europe/Samara"
-LOG_FILE="access.log"
+LOG_FILE="/home/user/access.log"
 EMAIL="sas*****in@mail.ru"
 SUBJECT="Ежечасный отчет о работе веб-сервера"
-LOCK_FILE="web_report.pid"
+LOCK_FILE="/home/user/web_report.pid"
 TMP_LOG=$(mktemp /tmp/web_report_XXXXXX.log)
 exec 200>"$LOCK_FILE"
 if ! flock -n 200; then
@@ -94,7 +94,7 @@ rm -f mail_body.txt
 >[!WARNING]
 >для нормальной работы скрипта в реальном времени нужно задать START_TIME=$(date -d "1 hour ago" +"%d/%b/%Y:%H")
 >sed -n "\|$START_TIME:|,\$p" "$LOG_FILE" > "$TMP_LOG"
-> и в начале export LC_TIME=C  export TZ="Europe/Samara"
+> и в начале export LC_TIME=C  export TZ="Europe/Samara" обязательно чтобы время в системе совпало с выводом в данном log файле
 
 ### Письмо отчёт
 ```text
@@ -167,3 +167,12 @@ rm -f mail_body.txt
 =========================================================
 ```
 <img width="901" height="251" alt="изображение" src="https://github.com/user-attachments/assets/d617ffa6-425c-4e87-894d-92ab55b5d42c" />
+
+>[!NOTE]
+>Так же результат после изменения времени и добавления "свежих" записей
+> <img width="1240" height="604" alt="изображение" src="https://github.com/user-attachments/assets/230578cc-e8ba-4a10-bf98-765e2db6dff7" />
+> Добавленные изменения продублированы 5 последних строк и изменена дата на свежую
+><img width="1751" height="168" alt="изображение" src="https://github.com/user-attachments/assets/56455949-cd82-49ba-96d5-fd64f07b7372" />
+
+
+
