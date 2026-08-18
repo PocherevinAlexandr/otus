@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# Вывод заголовка
+printf "%-7s %-20s %s\n" "PID" "PROCESS_NAME" "OPENED_FILE"
+
+# Цикл по всем числовым директориям в /proc
+for proc_dir in /proc/[0-9]*/; do
+    [ -d "$proc_dir" ] || continue
+    pid=$(basename "$proc_dir")
+
+    # Получаем имя процесса
+    if [ -f "${proc_dir}comm" ]; then
+        proc_name=$(cat "${proc_dir}comm" 2>/dev/null)
+    else
+        proc_name="unknown"
+    fi
+
+    # Проверяем наличие директории с дескрипторами файлов
+    if [ -d "${proc_dir}fd" ]; then
+        # Обходим все открытые дескрипторы
+        for fd in "${proc_dir}fd"/*; do
+            # Проверяем, что это реальная ссылка (симлинк) и она не битая
+            if [ -L "$fd" ] && [ -e "$fd" ]; then
+                # Читаем, куда указывает ссылка (путь к файлу)
+                file_path=$(readlink -f "$fd" 2>/dev/null)
+                
+                # Исключаем служебные анонимные пайпы/сокеты, если нужны только реальные файлы
+                # (Если нужно выводить абсолютно всё, включая сокеты, удалите следующие 3 строки)
+                if [[ "$file_path" =~ ^(socket:|pipe:|anon_inode:) ]]; t
