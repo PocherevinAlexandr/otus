@@ -1,4 +1,4 @@
-### Практика c SELinux
+# Практика c SELinux
 
 1. Запустить Nginx на нестандартном порту 3-мя разными способами:
 переключатели setsebool;
@@ -14,7 +14,7 @@ README с описанием каждого решения (скриншоты �
 выбрать одно из решений для реализации, предварительно обосновав выбор;
 реализовать выбранное решение и продемонстрировать его работоспособность.
 
-# 1.Подготовка 
+## 1.Подготовка 
 ```console
 PS E:\ucheba> vagrant up
 Bringing machine 'selinux' up with 'virtualbox' provider...
@@ -251,7 +251,7 @@ went wrong.
 PS E:\ucheba> vagrant ssh
 ```
 ## 2.Запуск nginx на нестандартном порту 3-мя разными способами 
-# способ 1
+### способ 1
 
 ```console
 [vagrant@selinux ~]$ sudo -i
@@ -264,9 +264,6 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 Enforcing
 [root@selinux ~]# cat /var/log/audit/audit.log | grep 4881
 type=AVC msg=audit(1787835055.056:728): avc:  denied  { name_bind } for  pid=5067 comm="nginx" src=4881 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:unreserved_port_t:s0 tclass=tcp_socket permissive=0
-[root@selinux ~]# grep 1787835055.056:728 var/log/audit/audit.log | audit2why
-grep: var/log/audit/audit.log: No such file or directory
-Nothing to do
 [root@selinux ~]# grep 1787835055.056:728 /var/log/audit/audit.log | audit2why
 type=AVC msg=audit(1787835055.056:728): avc:  denied  { name_bind } for  pid=5067 comm="nginx" src=4881 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:unreserved_port_t:s0 tclass=tcp_socket permissive=0
 
@@ -306,7 +303,7 @@ nis_enabled --> on
 [root@selinux ~]# getsebool -a | grep nis_enabled
 nis_enabled --> off
 ```
-# способ 2
+### способ 2
 ```console
 [root@selinux ~]# semanage port -l | grep http
 http_cache_port_t              tcp      8080, 8118, 8123, 10001-10010
@@ -347,7 +344,10 @@ Aug 28 09:30:02 selinux systemd[1]: Started nginx.service - The nginx HTTP and r
 http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
 http_port_t                    udp      80, 443
 pegasus_http_port_t            tcp      5988
+```
+### способ 3
 
+```console
 [root@selinux ~]# systemctl restart nginx
 Job for nginx.service failed because the control process exited with error code.
 See "systemctl status nginx.service" and "journalctl -xeu nginx.service" for details.
@@ -369,10 +369,6 @@ Aug 28 09:31:11 selinux nginx[6675]: nginx: configuration file /etc/nginx/nginx.
 Aug 28 09:31:11 selinux systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
 Aug 28 09:31:11 selinux systemd[1]: nginx.service: Failed with result 'exit-code'.
 Aug 28 09:31:11 selinux systemd[1]: Failed to start nginx.service - The nginx HTTP and reverse proxy server.
-```
-# способ 3
-
-```console
 [root@selinux ~]# grep nginx /var/log/audit/audit.log
 type=ADD_GROUP msg=audit(1787835027.907:606): pid=4875 uid=0 auid=1000 ses=3 subj=unconfined_u:unconfined_r:groupadd_t:s0-s0:c0.c1023 msg='op=add-group id=991 exe="/usr/sbin/groupadd" hostname=? addr=? terminal=? res=success'UID="root" AUID="vagrant" ID="nginx"
 type=GRP_MGMT msg=audit(1787835027.921:607): pid=4875 uid=0 auid=1000 ses=3 subj=unconfined_u:unconfined_r:groupadd_t:s0-s0:c0.c1023 msg='op=add-shadow-group id=991 exe="/usr/sbin/groupadd" hostname=? addr=? terminal=? res=success'UID="root" AUID="vagrant" ID="nginx"
@@ -426,7 +422,8 @@ pegasus_http_port_t            tcp      5988
 [root@selinux ~]# getsebool -a | grep nis_enabled
 nis_enabled --> off
 [root@selinux ~]# semodule -l
-abrt
+<details>
+<summary>📦 Вывод:</summary> <code>
 accountsd
 acct
 afs
@@ -845,7 +842,8 @@ zabbix
 zarafa
 zebra
 zoneminder
-zosremote
+zosremote </code> 
+</details>
 [root@selinux ~]# semodule -r nginx
 libsemanage.semanage_direct_remove_key: Removing last nginx module (no other nginx module exists at another priority).
 [root@selinux ~]# exit
