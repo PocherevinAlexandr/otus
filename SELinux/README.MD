@@ -422,6 +422,7 @@ pegasus_http_port_t            tcp      5988
 [root@selinux ~]# getsebool -a | grep nis_enabled
 nis_enabled --> off
 [root@selinux ~]# semodule -l
+```
 <details>
 <summary>📦 Вывод:</summary> <code>
 accountsd
@@ -844,6 +845,8 @@ zebra
 zoneminder
 zosremote </code> 
 </details>
+
+```console
 [root@selinux ~]# semodule -r nginx
 libsemanage.semanage_direct_remove_key: Removing last nginx module (no other nginx module exists at another priority).
 [root@selinux ~]# exit
