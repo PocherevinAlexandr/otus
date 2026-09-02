@@ -14,7 +14,8 @@ README с описанием каждого решения (скриншоты �
 выбрать одно из решений для реализации, предварительно обосновав выбор;
 реализовать выбранное решение и продемонстрировать его работоспособность.
 
-## 1.Подготовка 
+<details>
+<summary>## 1.Подготовка </summary>
 ```console
 PS E:\ucheba> vagrant up
 Bringing machine 'selinux' up with 'virtualbox' provider...
@@ -250,6 +251,8 @@ should be in the log above. Please read the output to determine what
 went wrong.
 PS E:\ucheba> vagrant ssh
 ```
+</details>
+
 ## 2.Запуск nginx на нестандартном порту 3-мя разными способами 
 ### способ 1
 
@@ -386,6 +389,7 @@ type=SERVICE_STOP msg=audit(1787909471.190:885): pid=1 uid=0 auid=4294967295 ses
 type=AVC msg=audit(1787909471.293:886): avc:  denied  { name_bind } for  pid=6675 comm="nginx" src=4881 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:unreserved_port_t:s0 tclass=tcp_socket permissive=0
 type=SYSCALL msg=audit(1787909471.293:886): arch=c000003e syscall=49 success=no exit=-13 a0=6 a1=564526066c58 a2=10 a3=7ffce1685f00 items=0 ppid=1 pid=6675 auid=4294967295 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=(none) ses=4294967295 comm="nginx" exe="/usr/sbin/nginx" subj=system_u:system_r:httpd_t:s0 key=(null)ARCH=x86_64 SYSCALL=bind AUID="unset" UID="root" GID="root" EUID="root" SUID="root" FSUID="root" EGID="root" SGID="root" FSGID="root"
 type=SERVICE_START msg=audit(1787909471.299:887): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=nginx comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=failed'UID="root" AUID="unset"
+
 [root@selinux ~]# grep nginx /var/log/audit/audit.log | audit2allow -M nginx
 ******************** IMPORTANT ***********************
 To make this policy package active, execute:
@@ -424,7 +428,7 @@ nis_enabled --> off
 [root@selinux ~]# semodule -l
 ```
 <details>
-<summary>📦 Вывод:</summary> <code>
+<summary>📦 Вывод: semodule -l </summary> <code>
 accountsd
 acct
 afs
