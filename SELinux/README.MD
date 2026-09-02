@@ -15,7 +15,7 @@ README с описанием каждого решения (скриншоты �
 реализовать выбранное решение и продемонстрировать его работоспособность.
 
 <details>
-<summary>## 1.Подготовка </summary>
+<summary>## 1.Подготовка </summary><code>
 ```console
 PS E:\ucheba> vagrant up
 Bringing machine 'selinux' up with 'virtualbox' provider...
@@ -251,7 +251,7 @@ should be in the log above. Please read the output to determine what
 went wrong.
 PS E:\ucheba> vagrant ssh
 ```
-</details>
+</code></details>
 
 ## 2.Запуск nginx на нестандартном порту 3-мя разными способами 
 ### способ 1
