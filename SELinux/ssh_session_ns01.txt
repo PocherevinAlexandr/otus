@@ -1,0 +1,181 @@
+**********************
+PowerShell transcript start
+Start time: 20260903161342
+Configuration Name: 
+Machine:(Microsoft Windows NT 10.0.19045.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -WorkingDirectory ~
+Process ID: 18092
+PSVersion: 7.4.5
+PSEdition: Core
+GitCommitId: 7.4.5
+OS: Microsoft Windows 10.0.19045
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+Transcript started, output file is E:\ucheba\ssh_session2.txt
+PS E:\ucheba> vagrant ssh ns01
+[vagrant@ns01 ~]$ sudo -i
+[root@ns01 ~]# cat /var/log/audit/audit.log | audit2why
+type=AVC msg=audit(1788433876.990:271): avc:  denied  { unlink } for  pid=873 comm="NetworkManager" name="eth1.nmconnection"
+ dev="sda4" ino=16826868 scontext=system_u:system_r:NetworkManager_t:s0 tcontext=unconfined_u:object_r:user_tmp_t:s0 tclass=
+file permissive=0
+
+        Was caused by:
+                Missing type enforcement (TE) allow rule.
+
+                You can use audit2allow to generate a loadable module to allow this access.
+
+type=AVC msg=audit(1788437346.946:881): avc:  denied  { write } for  pid=5705 comm="isc-net-0000" name="dynamic" dev="sda4"
+ino=17570587 scontext=system_u:system_r:named_t:s0 tcontext=unconfined_u:object_r:named_conf_t:s0 tclass=dir permissive=0
+
+        Was caused by:
+                Missing type enforcement (TE) allow rule.
+
+                You can use audit2allow to generate a loadable module to allow this access.
+
+[root@ns01 ~]# ls -alZ /var/named/named.localhost
+lrwxrwxrwx. 1 root named system_u:object_r:named_zone_t:s0 37 Jul 27 00:00 /var/named/named.localhost -> ../../usr/share/nam
+ed/named.localhost
+[root@ns01 ~]# ls -laZ /etc/named
+total 28
+drw-rwx---.  3 root named system_u:object_r:named_conf_t:s0      121 Sep  3 10:57 .
+drwxr-xr-x. 90 root root  system_u:object_r:etc_t:s0            8192 Sep  3 11:41 ..
+drw-rwx---.  2 root named unconfined_u:object_r:named_conf_t:s0   56 Sep  3 10:57 dynamic
+-rw-rw----.  1 root named system_u:object_r:named_conf_t:s0      784 Sep  3 10:57 named.50.168.192.rev
+-rw-rw----.  1 root named system_u:object_r:named_conf_t:s0      610 Sep  3 10:57 named.dns.lab
+-rw-rw----.  1 root named system_u:object_r:named_conf_t:s0      609 Sep  3 10:57 named.dns.lab.view1
+-rw-rw----.  1 root named system_u:object_r:named_conf_t:s0      657 Sep  3 10:57 named.newdns.lab
+[root@ns01 ~]# sudo semanage fcontext -l | grep named
+/dev/gpmdata                                       named pipe         system_u:object_r:gpmctl_t:s0
+/dev/initctl                                       named pipe         system_u:object_r:initctl_t:s0
+/dev/xconsole                                      named pipe         system_u:object_r:xconsole_device_t:s0
+/dev/xen/tapctrl.*                                 named pipe         system_u:object_r:xenctl_t:s0
+/etc/named(/.*)?                                   all files          system_u:object_r:named_conf_t:s0
+/etc/named\.caching-nameserver\.conf               regular file       system_u:object_r:named_conf_t:s0
+/etc/named\.conf                                   regular file       system_u:object_r:named_conf_t:s0
+/etc/named\.rfc1912.zones                          regular file       system_u:object_r:named_conf_t:s0
+/etc/named\.root\.hints                            regular file       system_u:object_r:named_conf_t:s0
+/etc/rc\.d/init\.d/named                           regular file       system_u:object_r:named_initrc_exec_t:s0
+/etc/rc\.d/init\.d/named-sdb                       regular file       system_u:object_r:named_initrc_exec_t:s0
+/etc/rc\.d/init\.d/unbound                         regular file       system_u:object_r:named_initrc_exec_t:s0
+/etc/rndc.*                                        regular file       system_u:object_r:named_conf_t:s0
+/etc/unbound(/.*)?                                 all files          system_u:object_r:named_conf_t:s0
+/run/bind(/.*)?                                    all files          system_u:object_r:named_var_run_t:s0
+/run/ecblp0                                        named pipe         system_u:object_r:cupsd_var_run_t:s0
+/run/initctl                                       named pipe         system_u:object_r:initctl_t:s0
+/run/named(/.*)?                                   all files          system_u:object_r:named_var_run_t:s0
+/run/ndc                                           socket             system_u:object_r:named_var_run_t:s0
+/run/systemd/initctl/fifo                          named pipe         system_u:object_r:initctl_t:s0
+/run/unbound(/.*)?                                 all files          system_u:object_r:named_var_run_t:s0
+/usr/bin/lwresd                                    regular file       system_u:object_r:named_exec_t:s0
+/usr/bin/named                                     regular file       system_u:object_r:named_exec_t:s0
+/usr/bin/named-checkconf                           regular file       system_u:object_r:named_checkconf_exec_t:s0
+/usr/bin/named-pkcs11                              regular file       system_u:object_r:named_exec_t:s0
+/usr/bin/named-sdb                                 regular file       system_u:object_r:named_exec_t:s0
+/usr/bin/unbound                                   regular file       system_u:object_r:named_exec_t:s0
+/usr/bin/unbound-anchor                            regular file       system_u:object_r:named_exec_t:s0
+/usr/bin/unbound-checkconf                         regular file       system_u:object_r:named_exec_t:s0
+/usr/bin/unbound-control                           regular file       system_u:object_r:named_exec_t:s0
+/usr/lib/systemd/system/named-sdb.*                regular file       system_u:object_r:named_unit_file_t:s0
+/usr/lib/systemd/system/named.*                    regular file       system_u:object_r:named_unit_file_t:s0
+/usr/lib/systemd/system/unbound.*                  regular file       system_u:object_r:named_unit_file_t:s0
+/usr/lib/systemd/systemd-hostnamed                 regular file       system_u:object_r:systemd_hostnamed_exec_t:s0
+/var/lib/softhsm(/.*)?                             all files          system_u:object_r:named_cache_t:s0
+/var/lib/unbound(/.*)?                             all files          system_u:object_r:named_cache_t:s0
+/var/log/named.*                                   regular file       system_u:object_r:named_log_t:s0
+/var/named(/.*)?                                   all files          system_u:object_r:named_zone_t:s0
+/var/named/chroot(/.*)?                            all files          system_u:object_r:named_conf_t:s0
+/var/named/chroot/dev                              directory          system_u:object_r:device_t:s0
+/var/named/chroot/dev/log                          socket             system_u:object_r:devlog_t:s0
+/var/named/chroot/dev/null                         character device   system_u:object_r:null_device_t:s0
+/var/named/chroot/dev/random                       character device   system_u:object_r:random_device_t:s0
+/var/named/chroot/dev/urandom                      character device   system_u:object_r:urandom_device_t:s0
+/var/named/chroot/dev/zero                         character device   system_u:object_r:zero_device_t:s0
+/var/named/chroot/etc(/.*)?                        all files          system_u:object_r:etc_t:s0
+/var/named/chroot/etc/localtime                    regular file       system_u:object_r:locale_t:s0
+/var/named/chroot/etc/named\.caching-nameserver\.conf regular file       system_u:object_r:named_conf_t:s0
+/var/named/chroot/etc/named\.conf                  regular file       system_u:object_r:named_conf_t:s0
+/var/named/chroot/etc/named\.rfc1912.zones         regular file       system_u:object_r:named_conf_t:s0
+/var/named/chroot/etc/named\.root\.hints           regular file       system_u:object_r:named_conf_t:s0
+/var/named/chroot/etc/pki(/.*)?                    all files          system_u:object_r:cert_t:s0
+/var/named/chroot/etc/rndc\.key                    regular file       system_u:object_r:dnssec_t:s0
+/var/named/chroot/lib(/.*)?                        all files          system_u:object_r:lib_t:s0
+/var/named/chroot/proc(/.*)?                       all files          <<None>>
+/var/named/chroot/run/named.*                      all files          system_u:object_r:named_var_run_t:s0
+/var/named/chroot/usr/lib(/.*)?                    all files          system_u:object_r:lib_t:s0
+/var/named/chroot/var/log                          directory          system_u:object_r:var_log_t:s0
+/var/named/chroot/var/log/named.*                  regular file       system_u:object_r:named_log_t:s0
+/var/named/chroot/var/named(/.*)?                  all files          system_u:object_r:named_zone_t:s0
+/var/named/chroot/var/named/data(/.*)?             all files          system_u:object_r:named_cache_t:s0
+/var/named/chroot/var/named/dynamic(/.*)?          all files          system_u:object_r:named_cache_t:s0
+/var/named/chroot/var/named/named\.ca              regular file       system_u:object_r:named_conf_t:s0
+/var/named/chroot/var/named/slaves(/.*)?           all files          system_u:object_r:named_cache_t:s0
+/var/named/chroot/var/run/dbus(/.*)?               all files          system_u:object_r:system_dbusd_var_run_t:s0
+/var/named/chroot/var/run/named.*                  all files          system_u:object_r:named_var_run_t:s0
+/var/named/chroot/var/tmp(/.*)?                    all files          system_u:object_r:named_cache_t:s0
+/var/named/chroot_sdb/dev                          directory          system_u:object_r:device_t:s0
+/var/named/chroot_sdb/dev/null                     character device   system_u:object_r:null_device_t:s0
+/var/named/chroot_sdb/dev/random                   character device   system_u:object_r:random_device_t:s0
+/var/named/chroot_sdb/dev/urandom                  character device   system_u:object_r:urandom_device_t:s0
+/var/named/chroot_sdb/dev/zero                     character device   system_u:object_r:zero_device_t:s0
+/var/named/data(/.*)?                              all files          system_u:object_r:named_cache_t:s0
+/var/named/dynamic(/.*)?                           all files          system_u:object_r:named_cache_t:s0
+/var/named/named\.ca                               regular file       system_u:object_r:named_conf_t:s0
+/var/named/slaves(/.*)?                            all files          system_u:object_r:named_cache_t:s0
+/var/named/chroot/usr/lib64 = /usr/lib
+/var/named/chroot/lib64 = /usr/lib
+/var/named/chroot/var = /var
+[root@ns01 ~]# sudo chcon -R -t named_zone_t /etc/named
+[root@ns01 ~]# ls -laZ /etc/named
+total 28
+drw-rwx---.  3 root named system_u:object_r:named_zone_t:s0      121 Sep  3 10:57 .
+drwxr-xr-x. 90 root root  system_u:object_r:etc_t:s0            8192 Sep  3 11:41 ..
+drw-rwx---.  2 root named unconfined_u:object_r:named_zone_t:s0   56 Sep  3 10:57 dynamic
+-rw-rw----.  1 root named system_u:object_r:named_zone_t:s0      784 Sep  3 10:57 named.50.168.192.rev
+-rw-rw----.  1 root named system_u:object_r:named_zone_t:s0      610 Sep  3 10:57 named.dns.lab
+-rw-rw----.  1 root named system_u:object_r:named_zone_t:s0      609 Sep  3 10:57 named.dns.lab.view1
+-rw-rw----.  1 root named system_u:object_r:named_zone_t:s0      657 Sep  3 10:57 named.newdns.lab
+[root@ns01 ~]# shutdown -r
+
+Broadcast message from root@ns01 on pts/1 (Thu 2026-09-03 12:23:32 UTC):
+
+The system will reboot at Thu 2026-09-03 12:24:32 UTC!
+
+Reboot scheduled for Thu 2026-09-03 12:24:32 UTC, use 'shutdown -c' to cancel.
+[root@ns01 ~]#
+Broadcast message from root@ns01 on pts/1 (Thu 2026-09-03 12:24:32 UTC):
+
+The system will reboot now!
+
+Connection to 127.0.0.1 closed by remote host.
+PS E:\ucheba> vagrant ssh ns01
+Last login: Thu Sep  3 12:14:11 2026 from 10.0.2.2
+Last login: Thu Sep  3 12:14:11 2026 from 10.0.2.2
+[vagrant@ns01 ~]$ restorecon -v -R /etc/named
+restorecon: Could not set context for /etc/named:  Operation not permitted
+restorecon: Could not read /etc/named: Permission denied.
+[vagrant@ns01 ~]$ sudo -i
+[root@ns01 ~]# restorecon -v -R /etc/named
+Relabeled /etc/named from system_u:object_r:named_zone_t:s0 to system_u:object_r:named_conf_t:s0
+Relabeled /etc/named/named.dns.lab from system_u:object_r:named_zone_t:s0 to system_u:object_r:named_conf_t:s0
+Relabeled /etc/named/named.dns.lab.view1 from system_u:object_r:named_zone_t:s0 to system_u:object_r:named_conf_t:s0
+Relabeled /etc/named/dynamic from unconfined_u:object_r:named_zone_t:s0 to unconfined_u:object_r:named_conf_t:s0
+Relabeled /etc/named/dynamic/named.ddns.lab from system_u:object_r:named_zone_t:s0 to system_u:object_r:named_conf_t:s0
+Relabeled /etc/named/dynamic/named.ddns.lab.view1 from system_u:object_r:named_zone_t:s0 to system_u:object_r:named_conf_t:s
+0
+Relabeled /etc/named/dynamic/named.ddns.lab.view1.jnl from system_u:object_r:named_zone_t:s0 to system_u:object_r:named_conf
+_t:s0
+Relabeled /etc/named/named.newdns.lab from system_u:object_r:named_zone_t:s0 to system_u:object_r:named_conf_t:s0
+Relabeled /etc/named/named.50.168.192.rev from system_u:object_r:named_zone_t:s0 to system_u:object_r:named_conf_t:s0
+[root@ns01 ~]# exit
+logout
+[vagrant@ns01 ~]$ exit
+logout
+PS E:\ucheba> Stop-Transcript
+**********************
+PowerShell transcript end
+End time: 20260903165449
+**********************
