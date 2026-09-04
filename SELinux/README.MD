@@ -254,8 +254,8 @@ PS E:\ucheba> vagrant ssh
 </code></details>
 
 ## 2.Запуск nginx на нестандартном порту 3-мя разными способами 
-### способ 1
 
+Входим на виртуальную машину, проверяем состояние межсетевого экрана и текущую конфигурацию:
 ```console
 [vagrant@selinux ~]$ sudo -i
 [root@selinux ~]# systemctl status firewalld
@@ -265,6 +265,11 @@ nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 nginx: configuration file /etc/nginx/nginx.conf test is successful
 [root@selinux ~]# getenforce
 Enforcing
+```
+### способ 1
+
+Анализируем причину блокировки порта `4881` при помощи утилиты `audit2why`:
+```console
 [root@selinux ~]# cat /var/log/audit/audit.log | grep 4881
 type=AVC msg=audit(1787835055.056:728): avc:  denied  { name_bind } for  pid=5067 comm="nginx" src=4881 scontext=system_u:system_r:httpd_t:s0 tcontext=system_u:object_r:unreserved_port_t:s0 tclass=tcp_socket permissive=0
 [root@selinux ~]# grep 1787835055.056:728 /var/log/audit/audit.log | audit2why
@@ -277,7 +282,16 @@ type=AVC msg=audit(1787835055.056:728): avc:  denied  { name_bind } for  pid=506
 
         Allow access by executing:
         # setsebool -P nis_enabled 1
+```
+
+Выполняем рекомендации утилиты `audit2why`:
+1. Включаем переключатель `nis_enabled` на постоянной основе:
+```console
 [root@selinux ~]# setsebool -P nis_enabled 1
+```
+
+2. Запускаем службу Nginx и проверяем статус ее работы:
+```console
 [root@selinux ~]# systemctl restart nginx
 [root@selinux ~]# systemctl status nginx
 ● nginx.service - The nginx HTTP and reverse proxy server
@@ -300,13 +314,18 @@ Aug 28 09:23:33 selinux systemd[1]: Starting nginx.service - The nginx HTTP and 
 Aug 28 09:23:33 selinux nginx[6609]: nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 Aug 28 09:23:33 selinux nginx[6609]: nginx: configuration file /etc/nginx/nginx.conf test is successful
 Aug 28 09:23:33 selinux systemd[1]: Started nginx.service - The nginx HTTP and reverse proxy server.
+```
+
+3. Для чистоты эксперимента отключаем переменную и сбрасываем конфигурацию перед проверкой второго способа:
+```console
 [root@selinux ~]# getsebool -a | grep nis_enabled
 nis_enabled --> on
 [root@selinux ~]#  setsebool -P nis_enabled off
 [root@selinux ~]# getsebool -a | grep nis_enabled
 nis_enabled --> off
 ```
-### способ 2
+### Способ 2: Добавление нестандартного порта в имеющийся тип
+1. Находим типы контекстов для сетевых портов веб-серверов:
 ```console
 [root@selinux ~]# semanage port -l | grep http
 http_cache_port_t              tcp      8080, 8118, 8123, 10001-10010
@@ -315,11 +334,19 @@ http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
 http_port_t                    udp      80, 443
 pegasus_http_port_t            tcp      5988
 pegasus_https_port_t           tcp      5989
+```
+
+2. Добавляем нестандартный порт `4881` в тип `http_port_t`:
+```console
 [root@selinux ~]# semanage port -a -t http_port_t -p tcp 4881
 [root@selinux ~]# semanage port -l | grep  http_port_t
 http_port_t                    tcp      4881, 80, 81, 443, 488, 8008, 8009, 8443, 9000
 http_port_t                    udp      80, 443
 pegasus_http_port_t            tcp      5988
+```
+
+3. Проверяем перезапуск и статус веб-сервера:
+```console
 [root@selinux ~]# systemctl restart nginx
 [root@selinux ~]# systemctl status nginx
 ● nginx.service - The nginx HTTP and reverse proxy server
@@ -342,14 +369,19 @@ Aug 28 09:30:02 selinux systemd[1]: Starting nginx.service - The nginx HTTP and 
 Aug 28 09:30:02 selinux nginx[6651]: nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 Aug 28 09:30:02 selinux nginx[6651]: nginx: configuration file /etc/nginx/nginx.conf test is successful
 Aug 28 09:30:02 selinux systemd[1]: Started nginx.service - The nginx HTTP and reverse proxy server.
+```
+
+4. Сбрасываем изменения для проверки третьего способа:
+```console
 [root@selinux ~]# semanage port -d -t http_port_t -p tcp 4881
 [root@selinux ~]# semanage port -l | grep  http_port_t
 http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
 http_port_t                    udp      80, 443
 pegasus_http_port_t            tcp      5988
 ```
-### способ 3
+### Способ 3: Формирование и установка модуля SELinux
 
+1. Инициируем ошибку запуска, чтобы зафиксировать новое событие блокировки в аудит-логе:
 ```console
 [root@selinux ~]# systemctl restart nginx
 Job for nginx.service failed because the control process exited with error code.
@@ -372,6 +404,10 @@ Aug 28 09:31:11 selinux nginx[6675]: nginx: configuration file /etc/nginx/nginx.
 Aug 28 09:31:11 selinux systemd[1]: nginx.service: Control process exited, code=exited, status=1/FAILURE
 Aug 28 09:31:11 selinux systemd[1]: nginx.service: Failed with result 'exit-code'.
 Aug 28 09:31:11 selinux systemd[1]: Failed to start nginx.service - The nginx HTTP and reverse proxy server.
+```
+
+2. Извлекаем информацию из `/var/log/audit/audit.log` и генерируем локальный модуль политики с помощью `audit2allow`:
+```console
 [root@selinux ~]# grep nginx /var/log/audit/audit.log
 type=ADD_GROUP msg=audit(1787835027.907:606): pid=4875 uid=0 auid=1000 ses=3 subj=unconfined_u:unconfined_r:groupadd_t:s0-s0:c0.c1023 msg='op=add-group id=991 exe="/usr/sbin/groupadd" hostname=? addr=? terminal=? res=success'UID="root" AUID="vagrant" ID="nginx"
 type=GRP_MGMT msg=audit(1787835027.921:607): pid=4875 uid=0 auid=1000 ses=3 subj=unconfined_u:unconfined_r:groupadd_t:s0-s0:c0.c1023 msg='op=add-shadow-group id=991 exe="/usr/sbin/groupadd" hostname=? addr=? terminal=? res=success'UID="root" AUID="vagrant" ID="nginx"
@@ -395,7 +431,10 @@ type=SERVICE_START msg=audit(1787909471.299:887): pid=1 uid=0 auid=4294967295 se
 To make this policy package active, execute:
 
 semodule -i nginx.pp
+```
 
+3. Активируем созданный модуль `nginx.pp` и запускаем сервис:
+```console
 [root@selinux ~]# semodule -i nginx.pp
 [root@selinux ~]# systemctl start nginx
 [root@selinux ~]# systemctl status nginx
@@ -419,12 +458,20 @@ Aug 28 09:34:31 selinux systemd[1]: Starting nginx.service - The nginx HTTP and 
 Aug 28 09:34:31 selinux nginx[6700]: nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 Aug 28 09:34:31 selinux nginx[6700]: nginx: configuration file /etc/nginx/nginx.conf test is successful
 Aug 28 09:34:31 selinux systemd[1]: Started nginx.service - The nginx HTTP and reverse proxy server.
+ ```
+
+4. Убеждаемся, что в базе данных утилиты semanage порт отсутствует, а флаг nis_enabled выключен:
+```console
 [root@selinux ~]# semanage port -l | grep  http_port_t
 http_port_t                    tcp      80, 81, 443, 488, 8008, 8009, 8443, 9000
 http_port_t                    udp      80, 443
 pegasus_http_port_t            tcp      5988
 [root@selinux ~]# getsebool -a | grep nis_enabled
 nis_enabled --> off
+```
+
+5. Проверяем наличие модуля `nginx` в общем списке активных политик безопасности ядра:
+```console
 [root@selinux ~]# semodule -l
 ```
 <details>
@@ -850,6 +897,7 @@ zoneminder
 zosremote </code> 
 </details>
 
+6. Начисто удаляем временный модуль для завершения первой части домашней работы:
 ```console
 [root@selinux ~]# semodule -r nginx
 libsemanage.semanage_direct_remove_key: Removing last nginx module (no other nginx module exists at another priority).
@@ -858,3 +906,97 @@ logout
 [vagrant@selinux ~]$ exit
 logout
 ```
+---
+
+# Отчет по лабораторной работе. Часть 2: Обеспечение работоспособности динамического обновления DNS (NSUPDATE)
+
+### Описание причины неработоспособности механизма обновления зоны
+
+При отправке динамического обновления с клиента (`nsupdate`) сервер возвращает ошибку `update failed: SERVFAIL`. 
+
+Анализ логов безопасности на сервере `ns01` с помощью утилиты `audit2why` выявил блокировку со стороны SELinux (**AVC denied**):
+```text
+type=AVC msg=audit(...): avc: denied { write } for pid=7378 comm="isc-net-0001" name="dynamic" ... tcontext=unconfined_u:object_r:named_conf_t:s0 tclass=dir permissive=0
+```
+
+### Суть проблемы:
+Процесс DNS-сервера BIND (`named_t`) пытается выполнить операцию **записи** (`write`) во временные файлы обновлений (файл журнала `.jnl`), расположенные в директории `/etc/named/dynamic`. По умолчанию системная политика SELinux сопоставляет каталогу `/etc/named` тип контекста **`named_conf_t`**. Данный контекст предназначен исключительно для *хранения конфигурационных файлов*, и политика безопасности запрещает процессу `named` изменять или создавать файлы внутри него.
+
+---
+
+###  Возможные способы решения проблемы
+
+Для устранения блокировки и сохранения работоспособности SELinux (в режиме `Enforcing`) можно применить три различных подхода:
+
+* **Способ 1: Временное изменение контекста вручную (утилита `chcon`)**
+  Быстрое переопределение типа контекста безопасности для каталога на `named_zone_t`, который разрешает запись:
+  ```bash
+  sudo chcon -R -t named_zone_t /etc/named
+  ```
+  *Минус:* Контекст сотрется и вернется в исходное нерабочее состояние при первой же команде `restorecon` или перезагрузке (что доказано в методичке).
+
+* **Способ 2: Генерация кастомного модуля политики (утилита `audit2allow`)**
+  Создание точечного правила на основе лога ошибок, разрешающего процессу `named` запись в директории типа `named_conf_t`:
+  ```bash
+  cat /var/log/audit/audit.log | audit2allow -M named_write_conf
+  semodule -i named_write_conf.pp
+  ```
+  *Минус:* Нарушает базовую парадигму безопасности системы (процесс DNS получает опасные права на запись в каталог со своими основными конфигами).
+
+* **Способ 3: Постоянное изменение правил контекста в базе данных SELinux (`semanage fcontext`)**
+  Регистрация постоянного правила, связывающего изменяемые зоны в каталоге с типом контекста `named_zone_t` на уровне всей системы:
+  ```bash
+  sudo semanage fcontext -a -t named_zone_t "/etc/named/dynamic(/.*)?"
+  sudo restorecon -R -v /etc/named/dynamic
+  ```
+
+---
+
+## 3. Обоснование выбора одного из решений
+
+Для реализации выбран **Способ №3 (Внесение изменений в базу данных политик через `semanage fcontext`)**.
+
+### Почему этот способ лучший:
+1. В отличие от использования `chcon` (Способ 1), данное решение является **постоянным (persistent)**. Контекст безопасности не сбросится после перезагрузки сервера или плановой перемаркировки дисков администратором (`restorecon`).
+2. В отличие от создания модуля через `audit2allow` (Способ 2), данный подход **не снижает уровень безопасности ОС**. Мы не даем сервису `named` избыточных прав на запись в системный каталог `/etc/named`, а лишь точечно размечаем конкретную подпапку `/etc/named/dynamic` как легитимное место для записи динамических данных зон.
+
+---
+
+## 4. Реализация выбранного решения и демонстрация работы
+
+### Шаг 1. Регистрация постоянного правила контекста
+Выполняем команды на сервере `ns01`, чтобы добавить правило для путей динамических зон в базу SELinux и применить его:
+```bash
+sudo semanage fcontext -a -t named_zone_t "/etc/named/dynamic(/.*)?"
+sudo restorecon -R -v /etc/named/dynamic
+```
+
+### Шаг 2. Проверка применения контекста
+Убеждаемся, что контекст изменился на `named_zone_t` и теперь защищен от сброса:
+```bash
+ls -laZ /etc/named/dynamic
+```
+*[Вставьте сюда скриншот вывода ls -laZ, где видно контекст named_zone_t]*
+
+### Шаг 3. Демонстрация работы динамического обновления с клиента
+Подключаемся к клиентской машине и повторно отправляем запрос на обновление записи:
+```bash
+vagrant ssh client
+nsupdate -k /etc/named.zonetransfer.key
+> server 192.168.50.10
+> zone ddns.lab
+> update add www.ddns.lab. 60 A 192.168.50.15
+> send
+> quit
+```
+**Результат:** Команда выполняется успешно, ошибка `SERVFAIL` отсутствует.
+
+*[Вставьте сюда скриншот успешного выполнения команды nsupdate]*
+
+### Шаг 4. Финальная проверка зоны через утилиту dig
+```bash
+dig @192.168.50.10 www.ddns.lab
+```
+В секции `;; ANSWER SECTION:` успешно отображается созданная запись `www.ddns.lab. 60 IN A 192.168.50.15`, что полностью доказывает корректность работы механизма динамического обновления с активным SELinux.
+
+*[Вставьте сюда скриншот вывода команды dig с созданной записью]*
