@@ -991,7 +991,7 @@ nsupdate -k /etc/named.zonetransfer.key
 ```
 **Результат:** Команда выполняется успешно, ошибка `SERVFAIL` отсутствует.
 
-
+<img width="573" height="118" alt="изображение" src="https://github.com/user-attachments/assets/44c7f6e6-be13-480c-a8bb-36a3bba8c5e4" />
 
 ### Шаг 4. Финальная проверка зоны через утилиту dig
 ```bash
@@ -999,4 +999,5 @@ dig @192.168.50.10 www.ddns.lab
 ```
 В секции `;; ANSWER SECTION:` успешно отображается созданная запись `www.ddns.lab. 60 IN A 192.168.50.15`, что полностью доказывает корректность работы механизма динамического обновления с активным SELinux.
 
-*[Вставьте сюда скриншот вывода команды dig с созданной записью]*
+<img width="650" height="376" alt="изображение" src="https://github.com/user-attachments/assets/68959b19-209a-43f3-8843-6df555d78b3d" />
+
