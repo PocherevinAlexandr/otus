@@ -976,6 +976,7 @@ sudo restorecon -R -v /etc/named/dynamic
 ```bash
 ls -laZ /etc/named/dynamic
 ```
+<img width="1052" height="245" alt="изображение" src="https://github.com/user-attachments/assets/8ad4d732-bc90-4d97-9c4e-718345d1f8c2" />
 
 ### Шаг 3. Демонстрация работы динамического обновления с клиента
 Подключаемся к клиентской машине и повторно отправляем запрос на обновление записи:
