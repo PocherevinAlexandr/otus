@@ -1,0 +1,32 @@
+---
+- name: Развертывание и настройка веб-сервера Nginx
+  hosts: localhost
+  become: true
+  vars:
+    nginx_port: 8080 # Переменная для нестандартного порта
+
+  tasks:
+    - name: Обновление кэша пакетов и установка Nginx (модуль apt)
+      ansible.builtin.apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Применение конфигурации из шаблона Jinja2
+      ansible.builtin.template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        mode: '0644'
+      notify: Перезапустить Nginx # Использование notify при изменении конфигурации
+
+    - name: Обеспечение запуска Nginx в режиме enabled в systemd
+      ansible.builtin.systemd:
+        name: nginx
+        enabled: true
+        state: started
+
+  handlers:
+    - name: Перезапустить Nginx
+      ansible.builtin.systemd:
+        name: nginx
+        state: restarted
