@@ -24,6 +24,11 @@
         name: nginx
         enabled: true
         state: started
+        
+    - name: Переименовать стандартную заглушку в index.html
+      ansible.builtin.command:
+        cmd: mv /var/www/html/index.nginx-debian.html /var/www/html/index.html
+        creates: /var/www/html/index.html
 
   handlers:
     - name: Перезапустить Nginx
