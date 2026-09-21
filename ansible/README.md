@@ -47,4 +47,5 @@ Connection: keep-alive
 ETag: "..."
 Accept-Ranges: bytes
 ```
-*[Вставить сюда скриншот вывода команды curl или окна браузера по адресу http://localhost:8080]*
+<img width="622" height="584" alt="изображение" src="https://github.com/user-attachments/assets/ae5b5df5-51e1-4f23-bbca-182e6bdfc707" />
+
