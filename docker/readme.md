@@ -59,7 +59,7 @@ COPY index.html /usr/share/nginx/html/index.html
 # Открываем порт 80
 EXPOSE 80
 
-docker build -t sashapoc_dockerhub/my-custom-nginx:alpine .
+docker build -t sashapoc/my-custom-nginx:alpine .
 
 в моём случае так из за подмены ssl
 NODE_TLS_REJECT_UNAUTHORIZED=0 DOCKER_BUILDKIT=0 docker build -t sashapoc/my-custom-nginx:alpine .
