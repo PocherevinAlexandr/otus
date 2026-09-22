@@ -37,9 +37,9 @@ docker run hello-world
 
 3. Сборка кастомного Nginx
 
-mkdir nginx-project && cd nginx-project
-nano index.html
-
+`mkdir nginx-project && cd nginx-project`
+`nano index.html`
+``` html
 <!DOCTYPE html>
 <html>
 <head>
@@ -49,26 +49,36 @@ nano index.html
     <h1>Ура! Этот кастомный образ Nginx собран на базе Alpine!</h1>
 </body>
 </html>
+```
+`nano Dockerfile`
 
-nano Dockerfile
+#1. Базовый образ nginx на alpine
 
-# Используем официальный легковесный образ nginx на базе alpine
-FROM nginx:alpine
-# Копируем наш кастомный html-файл внутрь контейнера, заменяя дефолтную страницу
-COPY index.html /usr/share/nginx/html/index.html
-# Открываем порт 80
-EXPOSE 80
+`FROM nginx:alpine`
 
-docker build -t sashapoc/my-custom-nginx:alpine .
+#2. Обновление пакетов (адаптировано под apk для alpine вместо apt)
+
+`RUN apk update && apk upgrade`
+
+#3. Копируем кастомную страницу (используем COPY согласно методичке)
+
+`COPY index.html /usr/share/nginx/html/index.html`
+
+#4. Указываем порт, который слушает nginx по умолчанию
+
+`EXPOSE 80`
+
+`docker build -t sashapoc/my-custom-nginx:alpine .`
 
 в моём случае так из за подмены ssl
-NODE_TLS_REJECT_UNAUTHORIZED=0 DOCKER_BUILDKIT=0 docker build -t sashapoc/my-custom-nginx:alpine .
+
+`NODE_TLS_REJECT_UNAUTHORIZED=0 DOCKER_BUILDKIT=0 docker build -t sashapoc/my-custom-nginx:alpine .`
 
 # 2. Проверка работы контейнера локально на порту 8080
-docker run -d -p 8080:80 --name test-nginx sashapoc/my-custom-nginx:alpine
+`docker run -d -p 8080:80 --name test-nginx sashapoc/my-custom-nginx:alpine`
 # 3. Авторизация в Docker Hub через консоль
-docker login
+`docker login`
 # 4. Отправка (пуш) собранного образа в ваш репозиторий Docker Hub
-docker push sashapoc/my-custom-nginx:alpine
+`docker push sashapoc/my-custom-nginx:alpine`
 
 <img width="675" height="192" alt="изображение" src="https://github.com/user-attachments/assets/096325c6-aed1-48ae-b80d-19013ee304e4" />
