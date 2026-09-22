@@ -1,0 +1,32 @@
+- name: Провижининг дисков и настройка окружения
+  hosts: all
+  become: true
+  tasks:
+
+    # 1. Форматирование первого диска в ext4
+    - name: Создать файловую систему ext4 на первом диске
+      ansible.builtin.filesystem:
+        fstype: ext4
+        dev: /dev/sdb
+
+    # 2. Форматирование второго диска в ext4
+    - name: Создать файловую систему ext4 на втором диске
+      ansible.builtin.filesystem:
+        fstype: ext4
+        dev: /dev/sdc
+
+    # 3. Монтирование первого диска (автоматически создает точку монтирования и пишет в /etc/fstab)
+    - name: Смонтировать первый диск в /mnt/disk1
+      ansible.posix.mount:
+        path: /mnt/disk1
+        src: /dev/sdb
+        fstype: ext4
+        state: mounted
+
+    # 4. Монтирование второго диска (автоматически создает точку монтирования и пишет в /etc/fstab)
+    - name: Смонтировать второй диск в /mnt/disk2
+      ansible.posix.mount:
+        path: /mnt/disk2
+        src: /dev/sdc
+        fstype: ext4
+        state: mounted
