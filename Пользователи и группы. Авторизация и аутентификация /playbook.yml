@@ -1,0 +1,78 @@
+---
+- name: Настройка PAM ограничений и Docker прав
+  hosts: all
+  become: true
+  tasks:
+
+    # --- ОСНОВНОЕ ЗАДАНИЕ: Настройка пользователей и PAM ---
+
+    - name: Создать группу admin
+      ansible.builtin.group:
+        name: admin
+        state: present
+
+    - name: Создать пользователей (otusadm, otus, vagrant)
+      ansible.builtin.user:
+        name: "{{ item }}"
+        password: "{{ 'Otus2022!' | password_hash('sha512') }}"
+        shell: /bin/bash
+        groups: admin
+        append: true
+      loop: [ 'otusadm', 'vagrant' ]
+
+    - name: Создать обычного пользователя otus (не в группе admin)
+      ansible.builtin.user:
+        name: otus
+        password: "{{ 'Otus2022!' | password_hash('sha512') }}"
+        shell: /bin/bash
+
+    - name: Копировать скрипт проверки в систему
+      ansible.builtin.copy:
+        src: login.sh
+        dest: /usr/local/bin/login.sh
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Интеграция скрипта в PAM для модуля sshd
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/sshd
+        insert_after: '^auth\s+substack\s+password-auth'
+        line: 'auth required pam_exec.so debug /usr/local/bin/login.sh'
+
+    # --- ЗАДАНИЕ СО ЗВЕЗДОЧКОЙ: Доступ к Docker для определенного пользователя ---
+    # Предположим, даем доступ пользователю 'otus'
+
+    - name: Установка необходимых пакетов для Docker
+      ansible.builtin.apt:
+        name: [ 'apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common', 'gnupg' ]
+        update_cache: true
+        state: present
+
+    - name: Добавление GPG-ключа Docker
+      ansible.builtin.apt_key:
+        url: https://docker.com
+        state: present
+
+    - name: Добавление репозитория Docker
+      ansible.builtin.apt_repository:
+        repo: deb [arch=amd64] https://docker.com jammy stable
+        state: present
+
+    - name: Установка Docker Engine
+      ansible.builtin.apt:
+        name: docker-ce
+        state: present
+
+    - name: Добавление пользователя otus в группу docker (управление контейнерами без sudo)
+      ansible.builtin.user:
+        name: otus
+        groups: docker
+        append: true
+
+    - name: Разрешить пользователю otus перезапускать сервис Docker через sudo без ввода пароля
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers.d/docker_restart
+        create: true
+        mode: '0440'
+        line: 'otus ALL=(root) NOPASSWD: /usr/bin/systemctl restart docker, /usr/bin/systemctl restart docker.service'
