@@ -1,0 +1,13 @@
+---
+- name: Restart nginx
+  service:
+    name: nginx
+    state: restarted
+
+- name: Restart auditd
+  command: service auditd restart
+
+- name: Restart rsyslog
+  service:
+    name: rsyslog
+    state: restarted
