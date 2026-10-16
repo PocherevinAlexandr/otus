@@ -14,16 +14,16 @@
     - name: Создать пользователей (otusadm, otus, vagrant)
       ansible.builtin.user:
         name: "{{ item }}"
-        password: "{{ 'Otus2022!' | password_hash('sha512') }}"
+        password: "{{ 'Otus2022!' | password_hash('sha512', 'myfixedsalt') }}"
         shell: /bin/bash
         groups: admin
         append: true
-      loop: [ 'otusadm', 'vagrant' ]
+      loop: [ 'otusadm', 'vagrant', 'root' ]
 
     - name: Создать обычного пользователя otus (не в группе admin)
       ansible.builtin.user:
         name: otus
-        password: "{{ 'Otus2022!' | password_hash('sha512') }}"
+        password: "{{ 'Otus2022!' | password_hash('sha512', 'myfixedsalt') }}"
         shell: /bin/bash
 
     - name: Копировать скрипт проверки в систему
@@ -37,8 +37,8 @@
     - name: Интеграция скрипта в PAM для модуля sshd
       ansible.builtin.lineinfile:
         path: /etc/pam.d/sshd
-        insert_after: '^auth\s+substack\s+password-auth'
-        line: 'auth required pam_exec.so debug /usr/local/bin/login.sh'
+        insertafter: '^auth\s+substack\s+password-auth'
+        line: 'session  required  pam_exec.so debug /usr/local/bin/login.sh'
 
     # --- ЗАДАНИЕ СО ЗВЕЗДОЧКОЙ: Доступ к Docker для определенного пользователя ---
     # Предположим, даем доступ пользователю 'otus'
@@ -51,12 +51,12 @@
 
     - name: Добавление GPG-ключа Docker
       ansible.builtin.apt_key:
-        url: https://docker.com
+        url: https://download.docker.com/linux/ubuntu/gpg
         state: present
 
     - name: Добавление репозитория Docker
       ansible.builtin.apt_repository:
-        repo: deb [arch=amd64] https://docker.com jammy stable
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu jammy stable
         state: present
 
     - name: Установка Docker Engine
