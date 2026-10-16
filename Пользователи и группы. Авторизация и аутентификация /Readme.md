@@ -12,7 +12,15 @@
 Предоставить определённому пользователю доступ к Docker и право перезапускать Docker-сервис.
 
 ## Демонстрация работоспособности
+
+1. otus без sudo (docker run ...) — РАБОТАЕТ, так как он в группе docker.
+2. otusadm без sudo — НЕ РАБОТАЕТ (Permission denied), так как его нет в группе docker.
+3. otusadm с sudo — РАБОТАЕТ, так как группа admin в файле /etc/sudoers.
+   
 <img width="771" height="958" alt="изображение" src="https://github.com/user-attachments/assets/0173fea8-73cd-43ea-b369-5d06ec54172d" />
 <img width="870" height="951" alt="изображение" src="https://github.com/user-attachments/assets/dc39086e-2e88-444f-b767-cef5c0895c13" />
 <img width="774" height="761" alt="изображение" src="https://github.com/user-attachments/assets/eeb75292-116e-4c14-8380-aade5d481bc3" />
+
+Система не должна запрашивать пароль! Это доказывает, что правило NOPASSWD из Ansible применилось верно.
+Чтобы доказать что доступ у пользователя только к Docker, а не полные root-права, попробуем перезапустить любой другой сервис
 <img width="956" height="120" alt="изображение" src="https://github.com/user-attachments/assets/bac6d081-0b33-4ac4-88e3-31c3ad6d171f" />
