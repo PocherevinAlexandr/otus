@@ -1,0 +1,12 @@
+---
+- name: "Конфигурация центрального сервера логов"
+  hosts: log
+  become: true
+  roles:
+    - log
+
+- name: "Конфигурация веб-сервера и отправки логов"
+  hosts: web
+  become: true
+  roles:
+    - web
