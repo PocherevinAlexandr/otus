@@ -22,9 +22,10 @@ Vagrant.configure("2") do |config|
 
     # Запуск Ansible внутри этой же виртуалки log
     log.vm.provision "ansible_local" do |ansible|
-      ansible.playbook = "playbook.yml"
-      ansible.install = true # Vagrant сам установит Ansible в Ubuntu
+      ansible.install = true
       ansible.limit = "all"
+      ansible.playbook_path = "ansible/playbooks/site.yml"
+      ansible.roles_path = "ansible/roles"
     end
   end
 end
