@@ -1,0 +1,36 @@
+---
+- name: Установка Nginx, Auditd и плагинов
+  apt:
+    name: 
+      - nginx
+      - auditd
+      - audispd-plugins
+    state: present
+    update_cache: yes
+
+- name: Настройка конфига Nginx (логирование на удаленный сервер)
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+  notify: Restart nginx
+
+- name: Настройка правила Auditd для отслеживания конфигов Nginx
+  lineinfile:
+    path: /etc/audit/rules.d/nginx.rules
+    line: "-w /etc/nginx/ -p wa -k nginx_conf"
+    create: yes
+  notify: Restart auditd
+
+- name: Включение отправки логов аудита в syslog (модуль audisp)
+  lineinfile:
+    path: /etc/audit/plugins.d/syslog.conf
+    regexp: "^active ="
+    line: "active = yes"
+  notify: Restart auditd
+
+- name: Настройка rsyslog на клиенте для пересылки логов аудита
+  lineinfile:
+    path: /etc/rsyslog.d/audit.conf
+    line: "if $programname == 'audispd' or $programname == 'audit' then @192.168.56.15:514"
+    create: yes
+  notify: Restart rsyslog
