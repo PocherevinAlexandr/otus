@@ -13,11 +13,16 @@
 
 ## Демонстрация работоспособности
 
+В пятницу вход выполнен успешно со всех учёток, в субботу вход под пользователем otus заблокирован так как он не в группе admin
+>[!NOTE]
+>Время сбивалось автоматически с хоста, пришлось менять время на реальном хосте. 
+   
+<img width="771" height="958" alt="изображение" src="https://github.com/user-attachments/assets/0173fea8-73cd-43ea-b369-5d06ec54172d" />
+
 1. otus без sudo (docker run ...) — РАБОТАЕТ, так как он в группе docker.
 2. otusadm без sudo — НЕ РАБОТАЕТ (Permission denied), так как его нет в группе docker.
 3. otusadm с sudo — РАБОТАЕТ, так как группа admin в файле /etc/sudoers.
    
-<img width="771" height="958" alt="изображение" src="https://github.com/user-attachments/assets/0173fea8-73cd-43ea-b369-5d06ec54172d" />
 <img width="870" height="951" alt="изображение" src="https://github.com/user-attachments/assets/dc39086e-2e88-444f-b767-cef5c0895c13" />
 <img width="774" height="761" alt="изображение" src="https://github.com/user-attachments/assets/eeb75292-116e-4c14-8380-aade5d481bc3" />
 
