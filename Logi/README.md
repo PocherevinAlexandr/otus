@@ -22,5 +22,5 @@ Ansible запускается локально на машине `log` (`ansibl
    vagrant ssh log
    ls -la /var/log/rsyslog/web/
    cat /var/log/rsyslog/web/nginx_access.log
-   cat /var/log/rsyslog/web/audispd.log
+   cat /var/log/rsyslog/web/audisp-syslog.log
    ```
