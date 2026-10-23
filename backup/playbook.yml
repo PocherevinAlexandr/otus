@@ -1,0 +1,135 @@
+- name: Configure Backup Server
+  hosts: backup
+  become: true
+  tasks:
+    - name: Install BorgBackup
+      apt:
+        name: borgbackup
+        state: present
+        update_cache: true
+
+    - name: Create borg group and user
+      user:
+        name: borg
+        shell: /bin/bash
+
+    - name: Partition, format and mount 2GB disk
+      block:
+        - parted:
+            device: /dev/sdb
+            number: 1
+            state: present
+        - filesystem:
+            fstype: ext4
+            dev: /dev/sdb1
+        - file:
+            path: /var/backup
+            state: directory
+            owner: borg
+            group: borg
+            mode: '0755'
+        - mount:
+            path: /var/backup
+            src: /dev/sdb1
+            fstype: ext4
+            state: mounted
+        - file:
+            path: /var/backup
+            state: directory
+            owner: borg
+            group: borg
+            mode: '0755'
+
+    - name: Set up .ssh directory for borg user
+      file:
+        path: /home/borg/.ssh
+        state: directory
+        owner: borg
+        group: borg
+        mode: '0700'
+
+- name: Configure Client and Exchange Keys
+  hosts: client
+  become: true
+  tasks:
+    - name: Install BorgBackup
+      apt:
+        name: borgbackup
+        state: present
+
+    - name: Generate SSH key for root
+      openssh_keypair:
+        path: /root/.ssh/id_rsa
+        type: rsa
+        size: 2048
+
+    - name: Fetch client public key
+      slurp:
+        src: /root/.ssh/id_rsa.pub
+      register: client_pub_key
+
+- name: Deploy Authorized Keys to Backup Server
+  hosts: backup
+  become: true
+  tasks:
+    - name: Add client key to authorized_keys
+      authorized_key:
+        user: borg
+        state: present
+        key: "{{ hostvars['client']['client_pub_key']['content'] | b64decode }}"
+
+- name: Initialize Borg and Setup Systemd Timer on Client
+  hosts: client
+  become: true
+  tasks:
+    - name: Add backup server to known_hosts
+      shell: ssh-keyscan -H 192.168.11.160 >> /root/.ssh/known_hosts
+      args:
+        creates: /root/.ssh/known_hosts
+
+    - name: Check and Initialize Borg Repository
+      shell: |
+        borg list borg@192.168.11.160:/var/backup || borg init --encryption=repokey borg@192.168.11.160:/var/backup
+      environment:
+        BORG_PASSPHRASE: "Otus1234"
+
+    - name: Create systemd backup service file
+      copy:
+        dest: /etc/systemd/system/borg-backup.service
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Borg Backup Service
+          [Service]
+          Type=oneshot
+          Environment="BORG_PASSPHRASE=Otus1234"
+          Environment="REPO=borg@192.168.11.160:/var/backup"
+          Environment="BACKUP_TARGET=/etc"
+          ExecStart=/bin/bash -c '/usr/bin/borg create --stats --list ${REPO}::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} ${BACKUP_TARGET} 2>&1 | logger -t borg-backup'
+          ExecStartPost=/bin/bash -c '/usr/bin/borg check ${REPO} 2>&1 | logger -t borg-backup'
+          ExecStartPost=/bin/bash -c '/usr/bin/borg prune --keep-daily=90 --keep-monthly=12 --keep-yearly=1 ${REPO} 2>&1 | logger -t borg-backup'
+
+    - name: Create systemd timer file (Every 5 minutes)
+      copy:
+        dest: /etc/systemd/system/borg-backup.timer
+        mode: '0644'
+        content: |
+          [Unit]
+          Description=Borg Backup Timer
+          [Timer]
+          OnUnitActiveSec=5min
+          Unit=borg-backup.service
+          [Install]
+          WantedBy=timers.target
+
+    - name: Enable and start timer, run initial backup
+      systemd:
+        name: borg-backup.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Trigger initial backup execution
+      systemd:
+        name: borg-backup.service
+        state: started
