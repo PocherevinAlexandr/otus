@@ -1,0 +1,102 @@
+- name: Настройка сервера логов
+  hosts: log
+  become: true
+  tasks:
+    - name: Установка rsyslog
+      apt:
+        name: rsyslog
+        state: present
+        update_cache: yes
+
+    - name: Настройка приема удаленных логов
+      copy:
+        dest: /etc/rsyslog.conf
+        content: |
+          module(load="imudp")
+          input(type="imudp" port="514")
+          module(load="imtcp")
+          input(type="imtcp" port="514")
+          
+          # Разрешаем создание папок для удаленных сетевых служб
+          $FileCreateMode 0644
+          $DirCreateMode 0755
+          
+          # Шаблон для раскладки логов по папкам хостов
+          $template RemoteLogs,"/var/log/rsyslog/%HOSTNAME%/%PROGRAMNAME%.log"
+          *.* ?RemoteLogs
+          & stop
+      notify: Restart rsyslog
+
+  handlers:
+    - name: Restart rsyslog
+      service:
+        name: rsyslog
+        state: restarted
+
+- name: Настройка веб-сервера
+  hosts: web
+  become: true
+  tasks:
+    - name: Чистая установка Nginx и пакетов аудита
+      apt:
+        name: [nginx, auditd, audispd-plugins]
+        state: present
+        update_cache: yes
+
+    - name: Деплой эталонного nginx.conf с отправкой логов в syslog
+      copy:
+        dest: /etc/nginx/nginx.conf
+        content: |
+          user www-data;
+          worker_processes auto;
+          pid /run/nginx.pid;
+          include /etc/nginx/modules-enabled/*.conf;
+
+          events {
+                  worker_connections 768;
+          }
+
+          http {
+                  sendfile on;
+                  tcp_nopush on;
+                  types_hash_max_size 2048;
+                  include /etc/nginx/mime.types;
+                  default_type application/octet-stream;
+
+                  access_log syslog:server=192.168.56.15:514,tag=nginx_access,severity=info combined;
+                  error_log syslog:server=192.168.56.15:514,tag=nginx_error;
+
+                  include /etc/nginx/conf.d/*.conf;
+                  include /etc/nginx/sites-enabled/*;
+          }
+      notify: Restart nginx
+
+    - name: Включение плагина syslog в auditd
+      lineinfile:
+        path: /etc/audit/plugins.d/syslog.conf
+        regexp: '^active ='
+        line: 'active = yes'
+      notify: Restart auditd
+
+    - name: Настройка пересылки системных логов с web на log через rsyslog
+      copy:
+        dest: /etc/rsyslog.d/60-remote.conf
+        content: |
+          *.* @@192.168.56.15:514
+      notify: Restart rsyslog_client
+
+  handlers:
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: Restart auditd
+      service:
+        name: auditd
+        state: restarted
+
+    - name: Restart rsyslog_client
+      service:
+        name: rsyslog
+        state: restarted
