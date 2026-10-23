@@ -20,7 +20,7 @@ Ansible запускается локально на машине `log` (`ansibl
 2. Зайдите на `log` сервер и проверьте, что логи прилетели:
    ```bash
    vagrant ssh log
-   ls -la /var/log/remote/web-server/
-   cat /var/log/remote/web-server/nginx_access.log
-   cat /var/log/remote/web-server/audispd.log
+   ls -la /var/log/rsyslog/web/
+   cat /var/log/rsyslog/web/nginx_access.log
+   cat /var/log/rsyslog/web/audispd.log
    ```
