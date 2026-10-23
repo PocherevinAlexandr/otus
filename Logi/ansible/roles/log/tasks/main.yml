@@ -1,6 +1,0 @@
----
-- name: Установка и копирование конфига rsyslog
-  template:
-    src: central.conf.j2
-    dest: /etc/rsyslog.d/central.conf
-  notify: Restart rsyslog
