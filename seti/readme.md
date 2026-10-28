@@ -1,3 +1,10 @@
+<img width="800" height="292" alt="1" src="https://github.com/user-attachments/assets/26a015f1-c85b-43b5-842a-427494f2599b" />
+
+<img width="593" height="184" alt="2" src="https://github.com/user-attachments/assets/c5c995f2-71b9-417e-aa83-b2c8b908d3ff" />
+
+<img width="691" height="210" alt="3" src="https://github.com/user-attachments/assets/42d51972-9e2e-4b8d-b265-a7dd54c0e8ab" />
+
+
 # Домашнее задание Разворачиваем сетевую лабораторию
 Цель:
 
