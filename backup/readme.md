@@ -114,6 +114,8 @@ borg list borg@192.168.56.160:/var/backup/repo
 ```
 Запросит парольную фразу "Otus1234"
 
+<img width="1920" height="1080" alt="Screenshot_20261028_142813" src="https://github.com/user-attachments/assets/ce74772f-892c-44e3-a608-0fdd2ef44ab3" />
+
 ---
 
 ## 4. Инструкция по восстановлению данных при аварии
@@ -147,6 +149,8 @@ borg extract --progress borg@192.168.56.160:/var/backup/repo::etc-2026-10-28_08:
 ls -la /tmp/recovery_test/etc
 cat /tmp/recovery_test/etc/hostname
 ```
+
+<img width="1920" height="1080" alt="восстановление" src="https://github.com/user-attachments/assets/65d0818f-63d2-4b67-8061-09c615ccc12f" />
 
 ### Шаг 5. Запуск автоматики обратно
 После завершения проверок верните систему в штатный режим работы:
