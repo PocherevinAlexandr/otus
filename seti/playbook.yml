@@ -1,0 +1,85 @@
+---
+- name: Настройка сети через Netplan на Ubuntu 24.04
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+    # ----------------------------------------------------
+    # 1. СИСТЕМНЫЕ НАСТРОЙКИ ДЛЯ РОУТЕРОВ
+    # ----------------------------------------------------
+    - name: Включение пересылки пакетов (IP Forwarding)
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: true
+        state: present
+        reload: true
+      when: inventory_hostname in ['inetRouter', 'centralRouter']
+
+    # ----------------------------------------------------
+    # 2. ГЕНЕРАЦИЯ КОНФИГУРАЦИИ NETPLAN БЕЗ ОШИБОК ОТСТУПОВ
+    # ----------------------------------------------------
+    - name: Применение сетевой конфигурации Netplan
+      copy:
+        dest: /etc/netplan/50-vagrant.yaml
+        owner: root
+        group: root
+        mode: '0600'
+        content: >
+          {{
+            {
+              'network': {
+                'version': 2,
+                'renderer': 'networkd',
+                'ethernets': {
+                  'eth0': {
+                    'dhcp4': true,
+                    'dhcp4-overrides': {
+                      'route-metric': (100 if inventory_hostname == 'inetRouter' else 900)
+                    }
+                  }
+                } | combine(
+                  {'eth1': {'addresses': ['192.168.255.1/30']}} if inventory_hostname == 'inetRouter' else
+                  {
+                    'eth1': {'addresses': ['192.168.255.2/30'], 'routes': [{'to': 'default', 'via': '192.168.255.1'}]},
+                    'eth2': {'addresses': ['192.168.0.1/28']},
+                    'eth3': {'addresses': ['192.168.0.33/28']},
+                    'eth4': {'addresses': ['192.168.0.65/26']}
+                  } if inventory_hostname == 'centralRouter' else
+                  {
+                    'eth1': {'addresses': ['192.168.0.2/28'], 'routes': [{'to': 'default', 'via': '192.168.0.1'}]}
+                  } if inventory_hostname == 'centralServer' else {}
+                )
+              }
+            } | to_yaml 
+          }}
+
+    - name: Активация новой сети через Netplan
+      command: netplan apply
+
+    # ----------------------------------------------------
+    # 3. МАРШРУТЫ И МАСКАРАД НА inetRouter
+    # ----------------------------------------------------
+    - name: Добавление статических маршрутов во внутренние подсети на inetRouter
+      command: ip route replace 192.168.0.0/24 via 192.168.255.2
+      when: inventory_hostname == 'inetRouter'
+
+    - name: Установка утилиты для сохранения правил файрвола
+      apt:
+        name: iptables-persistent
+        state: present
+        update_cache: true
+      when: inventory_hostname == 'inetRouter'
+
+    - name: Включение NAT (MASQUERADE) на внешнем интерфейсе inetRouter
+      iptables:
+        table: nat
+        chain: POSTROUTING
+        out_interface: eth0
+        jump: MASQUERADE
+      when: inventory_hostname == 'inetRouter'
+
+    - name: Сохранение правил iptables
+      command: iptables-save -f /etc/iptables/rules.v4
+      when: inventory_hostname == 'inetRouter'
