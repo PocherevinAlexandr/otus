@@ -1,8 +1,9 @@
+# ШАГ 1: Настраиваем сервер бэкапов (Диск, Борг, Пользователь)
 - name: Configure Backup Server
-  hosts: backup
+  hosts: backup_servers
   become: true
   tasks:
-    - name: Install BorgBackup
+    - name: Install BorgBackup on Backup Server
       apt:
         name: borgbackup
         state: present
@@ -48,50 +49,45 @@
         group: borg
         mode: '0700'
 
+# ШАГ 2: Настраиваем клиентскую машину и генерируем ключи
 - name: Configure Client and Exchange Keys
-  hosts: client
+  hosts: client_servers
   become: true
   tasks:
-    - name: Install BorgBackup
+    - name: Install BorgBackup on Client
       apt:
         name: borgbackup
         state: present
 
-    - name: Generate SSH key for root
+    - name: Generate SSH key for root on client
       openssh_keypair:
         path: /root/.ssh/id_rsa
         type: rsa
         size: 2048
 
-    - name: Fetch client public key
+    - name: Fetch client public key into memory
       slurp:
         src: /root/.ssh/id_rsa.pub
       register: client_pub_key
 
-- name: Deploy Authorized Keys to Backup Server
-  hosts: backup
+# ШАГ 3: Закидываем сгенерированный ключ на сервер бэкапов и запускаем Борг
+- name: Deploy Authorized Keys and Setup Automation
+  hosts: client_servers
   become: true
   tasks:
-    - name: Add client key to authorized_keys
+    - name: Add client root key to authorized_keys of borg user on server
       authorized_key:
         user: borg
         state: present
         key: "{{ hostvars['client']['client_pub_key']['content'] | b64decode }}"
+      delegate_to: backup
 
-- name: Initialize Borg and Setup Systemd Timer on Client
-  hosts: client
-  become: true
-  tasks:
-    - name: Add backup server to known_hosts
-      shell: ssh-keyscan -H 192.168.11.160 >> /root/.ssh/known_hosts
-      args:
-        creates: /root/.ssh/known_hosts
-
-    - name: Check and Initialize Borg Repository
+    - name: Check and Initialize Borg Repository from Client
       shell: |
-        borg list borg@192.168.11.160:/var/backup || borg init --encryption=repokey borg@192.168.11.160:/var/backup
+        borg check borg@192.168.56.160:/var/backup/repo || borg init --encryption=repokey borg@192.168.56.160:/var/backup/repo
       environment:
         BORG_PASSPHRASE: "Otus1234"
+        BORG_RSH: "ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/root/.ssh/known_hosts -o BatchMode=yes"
 
     - name: Create systemd backup service file
       copy:
@@ -103,7 +99,8 @@
           [Service]
           Type=oneshot
           Environment="BORG_PASSPHRASE=Otus1234"
-          Environment="REPO=borg@192.168.11.160:/var/backup"
+          Environment="BORG_RSH=ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          Environment="REPO=borg@192.168.56.160:/var/backup/repo"
           Environment="BACKUP_TARGET=/etc"
           ExecStart=/bin/bash -c '/usr/bin/borg create --stats --list ${REPO}::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} ${BACKUP_TARGET} 2>&1 | logger -t borg-backup'
           ExecStartPost=/bin/bash -c '/usr/bin/borg check ${REPO} 2>&1 | logger -t borg-backup'
