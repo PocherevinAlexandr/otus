@@ -1,10 +1,3 @@
-<img width="800" height="292" alt="1" src="https://github.com/user-attachments/assets/26a015f1-c85b-43b5-842a-427494f2599b" />
-
-<img width="593" height="184" alt="2" src="https://github.com/user-attachments/assets/c5c995f2-71b9-417e-aa83-b2c8b908d3ff" />
-
-<img width="691" height="210" alt="3" src="https://github.com/user-attachments/assets/42d51972-9e2e-4b8d-b265-a7dd54c0e8ab" />
-
-
 # Домашнее задание Разворачиваем сетевую лабораторию
 Цель:
 
@@ -104,6 +97,9 @@ ping -c 4 google.com
 ```bash
 tracepath google.com
 ```
+
+<img width="800" height="292" alt="1" src="https://github.com/user-attachments/assets/26a015f1-c85b-43b5-842a-427494f2599b" />
+
 *Результат:* Пакеты успешно доходят до интернета с 0% потерь. Первый прыжок осуществляется на `centralRouter` (`192.168.0.1`), второй — на стыковочный интерфейс `inetRouter` (`192.168.255.1`).
 
 ### Тест 2: Проверка таблиц маршрутизации
@@ -117,9 +113,13 @@ default via 192.168.255.1 dev eth1 proto static
 192.168.0.0/24 via 192.168.255.2 dev eth1
 ```
 
+<img width="593" height="184" alt="2" src="https://github.com/user-attachments/assets/c5c995f2-71b9-417e-aa83-b2c8b908d3ff" />
+
 ### Тест 3: Проверка NAT (Masquerade)
 На пограничном шлюзе **inetRouter** правила трансляции адресов успешно обрабатывают и считают пакеты локальной сети:
 ```bash
 sudo iptables -t nat -L POSTROUTING -v -n
 ```
+<img width="691" height="210" alt="3" src="https://github.com/user-attachments/assets/42d51972-9e2e-4b8d-b265-a7dd54c0e8ab" />
+
 В выводе присутствует активная цепочка `MASQUERADE` на интерфейсе `eth0`, фиксирующая проходящий трафик.
