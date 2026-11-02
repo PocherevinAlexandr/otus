@@ -1,0 +1,165 @@
+---
+- name: Настройка PXE сервера для Ubuntu 24 Автоустановки
+  hosts: all
+  become: true
+  tasks:
+    - name: Обновление кэша пакетов и установка необходимых утилит
+      apt:
+        name: [isc-dhcp-server, tftpd-hpa, nginx, wget, xorriso, nfs-kernel-server]
+        state: present
+        update_cache: yes
+
+    - name: Создание директорий для TFTP и HTTP
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+        recurse: yes
+      loop:
+        - /srv/tftp/pxelinux.cfg
+        - /srv/tftp/grub
+        - /var/www/html/ubuntu24
+        - /var/www/html/ks
+        - /nfs/ubuntu24
+
+    # --- НАСТРОЙКА DHCP ---
+    - name: Генерация конфигурации DHCP-сервера
+      template:
+        src: dhcpd.conf.j2
+        dest: /etc/dhcp/dhcpd.conf
+      notify: Restart DHCP
+
+    - name: Установка интерфейса для DHCP
+      lineinfile:
+        path: /etc/default/isc-dhcp-server
+        regexp: '^INTERFACESv4='
+        line: 'INTERFACESv4="eth1"' # Сетевой интерфейс внутренней сети private_network
+      notify: Restart DHCP
+
+    # --- ЗАГРУЗКА И МОНТИРОВАНИЕ ISO UBUNTU 24.04 ---
+    - name: Скачивание Netboot компонентов / ISO Ubuntu 24.04 LTS
+      get_url:
+        url: https://releases.ubuntu.com/24.04.5/ubuntu-24.04.5-live-server-amd64.iso
+        dest: /tmp/ubuntu-24.04.iso
+      register: iso_download
+
+    # Вместо постоянного монтирования извлечем ядро и initrd через xorriso
+    - name: Извлечение vmlinuz и initrd из ISO-образа
+      shell: |
+        xorriso -osirrox on -indev /tmp/ubuntu-24.04.iso -extract /casper/vmlinuz /srv/tftp/vmlinuz
+        xorriso -osirrox on -indev /tmp/ubuntu-24.04.iso -extract /casper/initrd /srv/tftp/initrd
+      args:
+        creates: /srv/tftp/vmlinuz
+
+# Полностью распаковываем ISO в NFS директорию для монтирования клиентом
+    - name: Распаковка всего содержимого ISO в NFS директорию
+      shell: |
+        mkdir -p /tmp/iso_mount
+        mount -o loop /tmp/ubuntu-24.04.iso /tmp/iso_mount
+        rsync -a --exclude='.' --exclude='..' /tmp/iso_mount/ /nfs/ubuntu24/
+        umount /tmp/iso_mount
+      args:
+        creates: /nfs/ubuntu24/casper/ubuntu-server-minimal.ubuntu-server.squashfs
+
+    # --- НАСТРОЙКА NFS ЭКСПОРТА ---
+    - name: Установка прав на чтение для папки NFS
+      file:
+        path: /nfs/ubuntu24
+        state: directory
+        mode: '0755'
+        recurse: yes
+        follow: false
+
+    - name: Добавление директории в NFS exports
+      lineinfile:
+        path: /etc/exports
+        line: '/nfs/ubuntu24 192.168.56.0/24(ro,sync,no_subtree_check,insecure,no_root_squash)'
+      notify: Restart NFS
+#    - name: Копирование ISO в директорию веб-сервера (для HTTP репозитория)
+#      copy:
+#        src: /tmp/ubuntu-24.04.iso
+#        dest: /var/www/html/ubuntu24/ubuntu-24.04.iso
+#        remote_src: yes
+
+    # --- КОМПОНЕНТЫ ЗАГРУЗЧИКОВ (BIOS & UEFI) ---
+    - name: Установка PXE загрузчиков из репозитория syslinux
+      apt:
+        name: [syslinux-common, pxelinux]
+        state: present
+
+    - name: Копирование BIOS PXE файлов в TFTP root
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        remote_src: yes
+      loop:
+        - { src: '/usr/lib/PXELINUX/pxelinux.0', dest: '/srv/tftp/' }
+        - { src: '/usr/lib/syslinux/modules/bios/ldlinux.c32', dest: '/srv/tftp/' }
+
+    - name: Установка UEFI GRUB загрузчиков
+      apt:
+        name: [grub-efi-amd64-signed, shim-signed]
+        state: present
+
+    - name: Копирование UEFI загрузчиков в TFTP root
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        remote_src: yes
+      loop:
+        - { src: '/usr/lib/shim/shimx64.efi.signed', dest: '/srv/tftp/bootx64.efi' }
+        - { src: '/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed', dest: '/srv/tftp/grubx64.efi' }
+
+    # --- ШАБЛОНЫ КОНФИГУРАЦИЙ ---
+    - name: Создание директории EFI для GRUB
+      file:
+        path: /srv/tftp/EFI/ubuntu
+        state: directory
+        mode: '0755'
+
+    - name: Создание меню GRUB (UEFI) в стандартном месте
+      template:
+        src: grub.cfg.j2
+        dest: /srv/tftp/grub/grub.cfg
+
+    # ДУБЛИРУЕМ ДЛЯ НАДЕЖНОСТИ ВО ВСЕ ПУТИ ПОИСКА GRUB
+    - name: Копирование grub.cfg в корень TFTP
+      template:
+        src: grub.cfg.j2
+        dest: /srv/tftp/grub.cfg
+
+    - name: Копирование grub.cfg в EFI директорию
+      template:
+        src: grub.cfg.j2
+        dest: /srv/tftp/EFI/ubuntu/grub.cfg
+    
+    - name: Создание PXE меню (BIOS)
+      template:
+        src: default.j2
+        dest: /srv/tftp/pxelinux.cfg/default
+
+#    - name: Создание меню GRUB (UEFI)
+#      template:
+#        src: grub.cfg.j2
+#        dest: /srv/tftp/grub/grub.cfg
+
+    - name: Создание файла ответов Autoinstall user-data
+      template:
+        src: user-data.j2
+        dest: /var/www/html/ks/user-data
+
+    - name: Создание пустого файла meta-data (обязательно для cloud-init)
+      file:
+        path: /var/www/html/ks/meta-data
+        state: touch
+
+  handlers:
+    - name: Restart DHCP
+      service:
+        name: isc-dhcp-server
+        state: restarted
+        
+    - name: Restart NFS
+      service:
+        name: nfs-kernel-server
+        state: restarted
