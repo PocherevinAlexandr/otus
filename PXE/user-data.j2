@@ -1,0 +1,18 @@
+#cloud-config
+autoinstall:
+  version: 1
+  identity:
+    hostname: ubuntu24-client
+    password: "$6$expenge$8q/S01E0KxJ4GgG.D9w8kE.hWc9n8R1F2N/m20EexF91P9d0t5B.2E68/X1zB2W8L2qP4X0G9.W9z9E2x2E2x." # Пароль: ubuntu (хеш md5/sha512)
+    username: ubuntu
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  storage:
+    layout:
+      name: direct
+  ssh:
+    install-server: true
+    authorized-keys: []
+  late-commands:
+    - curtin in-target apt-get update
