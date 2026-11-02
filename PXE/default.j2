@@ -1,0 +1,4 @@
+default ubuntu-autoinstall
+label ubuntu-autoinstall
+  kernel vmlinuz
+  append initrd=initrd ip=dhcp netboot=nfs nfsroot=192.168.56.10:/nfs/ubuntu24 nfsopts=vers=3 autoinstall ds=nocloud-net;s=http://192.168.56.10/ks/
