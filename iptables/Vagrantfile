@@ -1,0 +1,46 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "bentoubuntu-24.04"
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = 1024
+    vb.cpus = 1
+    # Добавляем нужное количество пустых сетевых адаптеров (внутренних сетей) для роутеров
+    # Это создаст интерфейсы в ОС, но Vagrant не будет вешать на них IP «на лету» и рвать SSH
+  end
+
+  config.vm.boot_timeout = 900
+  config.ssh.insert_key = false
+
+  # 1. Основной интернет-роутер
+  config.vm.define "inetRouter" do |node|
+    node.vm.hostname = "inetRouter"
+    node.vm.network "private_network", type: "dhcp", virtualbox__intnet: "net-inet-central"
+  end
+
+  # 2. Второй интернет-роутер
+  config.vm.define "inetRouter2" do |node|
+    node.vm.hostname = "inetRouter2"
+    node.vm.network "private_network", type: "dhcp", virtualbox__intnet: "net-inet2-central"
+    node.vm.network "private_network", type: "dhcp" # Внешний DHCP адаптер
+  end
+
+  # 3. Центральный внутренний роутер
+  config.vm.define "centralRouter" do |node|
+    node.vm.hostname = "centralRouter"
+    node.vm.network "private_network", type: "dhcp", virtualbox__intnet: "net-inet-central"
+    node.vm.network "private_network", type: "dhcp", virtualbox__intnet: "net-inet2-central"
+    node.vm.network "private_network", type: "dhcp", virtualbox__intnet: "net-central-server"
+  end
+
+  # 4. Сервер с Nginx
+  config.vm.define "centralServer" do |node|
+    node.vm.hostname = "centralServer"
+    node.vm.network "private_network", type: "dhcp", virtualbox__intnet: "net-central-server"
+    
+    node.vm.provision "ansible" do |ansible|
+      ansible.playbook = "playbook.yml"
+      ansible.compatibility_mode = "2.0"
+      ansible.limit = "all"
+    end
+  end
+end
