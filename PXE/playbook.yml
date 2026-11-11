@@ -75,6 +75,7 @@
         path: /etc/exports
         line: '/nfs/ubuntu24 192.168.56.0/24(ro,sync,no_subtree_check,insecure,no_root_squash)'
       notify: Restart NFS
+# Не пошло нехватает оперативной памяти 
 #    - name: Копирование ISO в директорию веб-сервера (для HTTP репозитория)
 #      copy:
 #        src: /tmp/ubuntu-24.04.iso
@@ -137,11 +138,6 @@
       template:
         src: default.j2
         dest: /srv/tftp/pxelinux.cfg/default
-
-#    - name: Создание меню GRUB (UEFI)
-#      template:
-#        src: grub.cfg.j2
-#        dest: /srv/tftp/grub/grub.cfg
 
     - name: Создание файла ответов Autoinstall user-data
       template:
