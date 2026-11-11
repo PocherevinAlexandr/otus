@@ -1,0 +1,116 @@
+---
+- name: Configure inetRouter (Port Knocking)
+  hosts: inetRouter
+  become: true
+  tasks:
+    - name: Set Static IP on eth1 via iproute2
+      shell: ip addr replace 192.168.255.1/24 dev eth1 && ip link set eth1 up
+
+    - name: Install iptables-persistent
+      apt:
+        name: [iptables, iptables-persistent]
+        state: present
+
+    - name: Enable IPv4 Forwarding
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: true
+        state: present
+
+    - name: Configure Port Knocking Rules
+      ansible.builtin.shell: |
+        iptables -F INPUT
+        iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+        iptables -A INPUT -i lo -j ACCEPT
+        iptables -A INPUT -i eth1 -p tcp --dport 7001 -m recent --name K1 --set -j DROP
+        iptables -A INPUT -i eth1 -p tcp --dport 7002 -m recent --name K1 --rcheck --seconds 5 -m recent --name K2 --set -j DROP
+        iptables -A INPUT -i eth1 -p tcp --dport 22 -m conntrack --ctstate NEW -m recent --name K2 --rcheck --seconds 10 -j ACCEPT
+        iptables -A INPUT -i eth1 -p tcp --dport 22 -j DROP
+      notify: Save iptables
+
+  handlers:
+    - name: Save iptables
+      shell: iptables-save > /etc/iptables/rules.v4
+
+- name: Configure inetRouter2 (DNAT)
+  hosts: inetRouter2
+  become: true
+  tasks:
+    - name: Set Static IP on eth1 via iproute2
+      shell: ip addr replace 192.168.254.1/24 dev eth1 && ip link set eth1 up
+
+    - name: Add route to centralServer network via centralRouter
+      shell: ip route replace 10.10.2.0/24 via 192.168.254.2
+
+    - name: Enable IPv4 Forwarding
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: true
+        state: present
+
+    - name: Configure Port Forwarding (No Masquerade)
+      ansible.builtin.shell: |
+        iptables -t nat -F
+        iptables -t nat -A PREROUTING -p tcp --dport 8080 -j DNAT --to-destination 10.10.2.2:80
+        iptables -F FORWARD
+        iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+        iptables -A FORWARD -p tcp -d 10.10.2.2 --dport 80 -j ACCEPT
+
+
+- name: Configure centralRouter (PBR & Connection Marking)
+  hosts: centralRouter
+  become: true
+  tasks:
+    - name: Set Static IPs on Interfaces
+      shell: |
+        ip addr replace 192.168.255.2/24 dev eth1 && ip link set eth1 up
+        ip addr replace 192.168.254.2/24 dev eth2 && ip link set eth2 up
+        ip addr replace 10.10.2.1/24 dev eth3 && ip link set eth3 up
+
+    - name: Enable IPv4 Forwarding
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        sysctl_set: true
+        state: present
+
+    - name: Configure Policy-Based Routing
+      ansible.builtin.shell: |
+        iptables -t mangle -F
+        iptables -t mangle -A PREROUTING -i eth2 -p tcp --dport 80 -j CONNMARK --set-mark 1
+        iptables -t mangle -A PREROUTING -i eth3 -p tcp --sport 80 -j CONNMARK --restore-mark
+        
+        ip route replace default via 192.168.254.1 table 100 || ip route add default via 192.168.254.1 table 100
+        ip rule del fwmark 1 table 100 2>/dev/null || true
+        ip rule add fwmark 1 iif eth3 table 100
+        ip route flush cache
+
+- name: Configure centralServer (Nginx & Routing)
+  hosts: centralServer
+  become: true
+  tasks:
+    - name: Set Static IP on internal interface safely
+      shell: |
+        IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -E '^(eth|enp)' | tail -n 1)
+        ip addr replace 10.10.2.2/24 dev $IFACE
+        ip link set $IFACE up
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: true
+
+    - name: Ensure Nginx is started
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+    - name: Route traffic via centralRouter without breaking Vagrant SSH
+      shell: |
+        ip route add 192.168.254.0/24 via 10.10.2.1 || true
+        ip route add 192.168.255.0/24 via 10.10.2.1 || true
+        ip route add 192.168.56.0/24 via 10.10.2.1 || true
