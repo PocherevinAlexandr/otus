@@ -68,6 +68,9 @@ vagrant up
    ping -I 192.168.10.1 192.168.20.1
    ```
 2. На `router2` с помощью `tcpdump` фиксируется разделение потоков:
+
+   <img width="1168" height="611" alt="изображение" src="https://github.com/user-attachments/assets/fde26ed3-680a-4b8a-bd69-3c7dce2a5c4f" />
+
    * На интерфейсе `eth2` (в сторону `router3`) приходят только запросы `ICMP echo request`.
    * На интерфейсе `eth1` (напрямую к `router1`) уходят только ответы `ICMP echo reply`.
 
@@ -81,5 +84,8 @@ vagrant up
    ansible-playbook -i ansible/hosts -l all ansible/provision.yml -t setup_ospf
    ```
 3. **Результат проверки (`tcpdump` на `router2`):**
+
+   <img width="1149" height="697" alt="изображение" src="https://github.com/user-attachments/assets/24900c06-3d9b-40d0-b6a3-6eb47524d0c2" />
+
    * `sudo tcpdump -i eth1 icmp` — **0 пакетов** (прямой линк между `router1` и `router2` теперь имеет стоимость `1000` в обе стороны и не используется).
    * `sudo tcpdump -i eth2 icmp` — через интерфейс в сторону `router3` симметрично проходят как `ICMP echo request`, так и `ICMP echo reply`.
