@@ -1,0 +1,44 @@
+{% set iface1 = ansible_interfaces | map('regex_replace', '^', 'ansible_') | map('extract', hostvars[inventory_hostname]) | selectattr('ipv4', 'defined') | selectattr('ipv4.address', 'equalto', ip_link1) | map(attribute='device') | first %}
+{% set iface2 = ansible_interfaces | map('regex_replace', '^', 'ansible_') | map('extract', hostvars[inventory_hostname]) | selectattr('ipv4', 'defined') | selectattr('ipv4.address', 'equalto', ip_link2) | map(attribute='device') | first %}
+{% set iface3 = ansible_interfaces | map('regex_replace', '^', 'ansible_') | map('extract', hostvars[inventory_hostname]) | selectattr('ipv4', 'defined') | selectattr('ipv4.address', 'equalto', ip_lan) | map(attribute='device') | first %}
+frr defaults traditional
+hostname {{ ansible_hostname }}
+log syslog informational
+no ipv6 forwarding
+service integrated-vtysh-config
+!
+interface {{ iface1 }}
+ ip address {{ ip_link1 }}/30
+ ip ospf mtu-ignore
+{% if ansible_hostname == 'router1' %}
+ ip ospf cost 1000
+{% elif ansible_hostname == 'router2' and symmetric_routing == true %}
+ ip ospf cost 1000
+{% else %}
+ !ip ospf cost 450
+{% endif %}
+ ip ospf hello-interval 10
+ ip ospf dead-interval 30
+!
+interface {{ iface2 }}
+ ip address {{ ip_link2 }}/30
+ ip ospf mtu-ignore
+ ip ospf hello-interval 10
+ ip ospf dead-interval 30
+!
+interface {{ iface3 }}
+ ip address {{ ip_lan }}/24
+ ip ospf mtu-ignore
+ ip ospf hello-interval 10
+ ip ospf dead-interval 30
+!
+router ospf
+ {% if router_id_enable == false %}!{% endif %}router-id {{ router_id }}
+ network {{ net1 }} area 0
+ network {{ net2 }} area 0
+ network {{ net3 }} area 0
+ neighbor {{ neigh1 }}
+ neighbor {{ neigh2 }}
+!
+log file /var/log/frr/frr.log
+default-information originate always

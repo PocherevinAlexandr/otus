@@ -1,0 +1,66 @@
+---
+- name: OSPF
+  hosts: all
+  become: yes
+  vars_files:
+    - defaults/main.yml
+  tasks:
+    - name: install base tools and FRR
+      apt:
+        name:
+          - vim
+          - traceroute
+          - tcpdump
+          - net-tools
+          - frr
+          - frr-pythontools
+        state: present
+        update_cache: true
+
+    - name: disable ufw service
+      service:
+        name: ufw
+        state: stopped
+        enabled: false
+      ignore_errors: true
+
+    - name: set up forward packages across routers
+      sysctl:
+        name: net.ipv4.conf.all.forwarding
+        value: '1'
+        state: present
+
+    - name: disable rp_filter for asymmetric routing
+      sysctl:
+        name: "{{ item }}"
+        value: '0'
+        state: present
+      loop:
+        - net.ipv4.conf.all.rp_filter
+        - net.ipv4.conf.default.rp_filter
+
+    - name: base set up OSPF
+      template:
+        src: templates/daemons
+        dest: /etc/frr/daemons
+        owner: frr
+        group: frr
+        mode: 0640
+
+    - name: set up OSPF
+      template:
+        src: templates/frr.conf.j2
+        dest: /etc/frr/frr.conf
+        owner: frr
+        group: frr
+        mode: 0640
+      tags:
+        - setup_ospf
+
+    - name: restart FRR
+      service:
+        name: frr
+        state: restarted
+        enabled: true
+      tags:
+        - setup_ospf
